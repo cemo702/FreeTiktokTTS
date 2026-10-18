@@ -1,0 +1,16 @@
+<!--
+  TikTok Yorum Ses - uygulama ikonu (kaynak dosya).
+  Tasarim: ses dalgasi cubuklari (ekolayzer), projenin kendi paleti.
+  Bu dosya BU PROJE icin sifirdan cizilmistir; hicbir marka veya
+  ikon setinden kopya icermez. Uretim: node scripts/make-icon.mjs
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 256 256">
+  <rect width="256" height="256" rx="56" fill="#0e1116"/>
+  <rect x="42" y="106" width="16" height="44" rx="8" fill="#6366f1"/>
+  <rect x="68" y="92" width="16" height="72" rx="8" fill="#6366f1"/>
+  <rect x="94" y="78" width="16" height="100" rx="8" fill="#22d3ee"/>
+  <rect x="120" y="66" width="16" height="124" rx="8" fill="#e6ecf5"/>
+  <rect x="146" y="78" width="16" height="100" rx="8" fill="#22d3ee"/>
+  <rect x="172" y="92" width="16" height="72" rx="8" fill="#6366f1"/>
+  <rect x="198" y="106" width="16" height="44" rx="8" fill="#6366f1"/>
+</svg>

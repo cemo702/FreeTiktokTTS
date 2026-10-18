@@ -1,0 +1,20 @@
+# Bagimliliklar / ciktilar
+node_modules/
+dist/
+
+# Kurulum betigi uretir (scripts/setup-voice.mjs yeniden olusturur)
+engine/venv/
+engine/engine.json
+voices/turkish/model.onnx
+voices/turkish/model.onnx.json
+voices/turkish/voice.json
+
+# Uretilen ikon (kaynak: build/icon.svg -> scripts/make-icon.mjs)
+build/icon.png
+
+# Diger
+*.log
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

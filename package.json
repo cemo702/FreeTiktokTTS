@@ -1,0 +1,80 @@
+{
+  "name": "freetiktoktts",
+  "version": "1.2.0",
+  "description": "FreeTiktokTTS — TikTok canli yayin yorumlarini lokal Piper TTS ile okuyan Electron uygulamasi",
+  "license": "AGPL-3.0-only",
+  "author": "cemo702",
+  "homepage": "https://github.com/cemo702/FreeTiktokTTS",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cemo702/FreeTiktokTTS.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cemo702/FreeTiktokTTS/issues"
+  },
+  "private": true,
+  "type": "module",
+  "main": "src/main/main.js",
+  "scripts": {
+    "setup:voice": "node scripts/setup-voice.mjs",
+    "verify": "node scripts/verify-pipeline.mjs",
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "test": "node --test test/*.test.js",
+    "dist": "electron-builder --win nsis --publish never",
+    "postinstall": "node scripts/setup-voice.mjs --optional"
+  },
+  "devDependencies": {
+    "electron": "44.5.1",
+    "electron-builder": "26.15.3",
+    "sharp": "^0.35.5"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9",
+    "tiktok-live-connector": "2.5.0"
+  },
+  "build": {
+    "appId": "io.github.cemo702.freetiktoktts",
+    "productName": "FreeTiktokTTS",
+    "icon": "build/icon.png",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "engine",
+        "to": "engine"
+      },
+      {
+        "from": "voices/turkish",
+        "to": "voices/turkish"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "FreeTiktokTTS"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "cemo702",
+      "repo": "FreeTiktokTTS"
+    }
+  }
+}

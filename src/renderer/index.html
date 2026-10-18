@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:;" />
+  <title data-i18n="app.title">FreeTiktokTTS</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="live" data-i18n="tab.live">Yayın</button>
+    <button class="tab-btn" data-tab="settings" data-i18n="tab.settings">Settings</button>
+    <button class="voice-chip" id="voiceChip" title="Aktif ses"></button>
+  </nav>
+
+  <main class="main">
+    <!-- ============================ SEKME 1: YAYIN ============================ -->
+    <section class="tab-panel active" id="tab-live">
+      <header class="topbar">
+        <div class="brand">
+          <svg class="logo" viewBox="0 0 256 256" aria-hidden="true"><rect x="42" y="106" width="16" height="44" rx="8" fill="#6366f1"/><rect x="68" y="92" width="16" height="72" rx="8" fill="#6366f1"/><rect x="94" y="78" width="16" height="100" rx="8" fill="#22d3ee"/><rect x="120" y="66" width="16" height="124" rx="8" fill="#e6ecf5"/><rect x="146" y="78" width="16" height="100" rx="8" fill="#22d3ee"/><rect x="172" y="92" width="16" height="72" rx="8" fill="#6366f1"/><rect x="198" y="106" width="16" height="44" rx="8" fill="#6366f1"/></svg>
+          <div>
+            <h1 data-i18n="app.title">FreeTiktokTTS</h1>
+            <span class="subtitle" id="engineState"></span>
+          </div>
+        </div>
+
+        <div class="connection">
+          <label class="field">
+            <span data-i18n="header.streamer">Yayıncı</span>
+            <input id="username" type="text" autocomplete="off" spellcheck="false" data-i18n-placeholder="header.streamerPlaceholder" />
+          </label>
+          <button id="btnStart" class="primary" data-i18n="btn.start">Başlat</button>
+          <button id="btnStop" class="ghost" disabled data-i18n="btn.stop">Durdur</button>
+          <div class="status" id="statusBadge"><span class="dot"></span><span id="statusText">kapalı</span></div>
+        </div>
+
+        <div class="metrics">
+          <div class="metric"><span class="metric-value" id="mViewers">—</span><span class="metric-label" data-i18n="metric.viewers">izleyici</span></div>
+          <div class="metric"><span class="metric-value" id="mSpoken">0</span><span class="metric-label" data-i18n="metric.spoken">okunan</span></div>
+          <div class="metric"><span class="metric-value" id="mSkipped">0</span><span class="metric-label" data-i18n="metric.skipped">atlanan</span></div>
+          <div class="metric"><span class="metric-value" id="mDropped">0</span><span class="metric-label" data-i18n="metric.dropped">düşen</span></div>
+          <div class="metric"><span class="metric-value" id="mQueue">0</span><span class="metric-label" data-i18n="metric.queue">kuyruk</span></div>
+          <div class="metric" title="total"><span class="metric-value" id="mLatency">–</span><span class="metric-label" data-i18n="metric.latency">toplam gecikme</span></div>
+          <div class="metric" title="TTS"><span class="metric-value" id="mSynth">–</span><span class="metric-label" data-i18n="metric.synth">TTS</span></div>
+        </div>
+      </header>
+
+      <div class="layout">
+        <section class="panel comments-panel">
+          <div class="panel-head">
+            <h2 data-i18n="comments.title">Canlı yorumlar</h2>
+            <div class="panel-actions">
+              <div class="search-wrap">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>
+                <input id="filterInput" type="search" data-i18n-placeholder="comments.search" />
+              </div>
+              <button id="btnHistorySearch" class="ghost hidden" data-i18n="comments.historySearch"></button>
+              <select id="filterState">
+                <option value="all" data-i18n="comments.filterAll">tümü</option>
+                <option value="queued" data-i18n="comments.filterQueued">kuyrukta</option>
+                <option value="skipped" data-i18n="comments.filterSkipped">atlanan</option>
+                <option value="profanity" data-i18n="comments.filterProfanity">küfürlü</option>
+              </select>
+            </div>
+          </div>
+          <div id="historyInfo" class="history-info hidden"></div>
+          <div id="commentList" class="comment-list"></div>
+        </section>
+
+        <aside class="panel side-panel">
+          <section class="block">
+            <h3 data-i18n="section.connection">Bağlantı</h3>
+            <div class="toggle-row">
+              <label class="toggle">
+                <input type="checkbox" id="autoStart" />
+                <span class="switch" aria-hidden="true"></span>
+                <span class="toggle-text"><span data-i18n="check.autoStart">Açılışta son yayına bağlan</span> <em id="autoStartState"></em></span>
+              </label>
+            </div>
+            <label class="field">
+              <span data-i18n="label.lastStreamer">Son yayıncı</span>
+              <input id="lastUsername" type="text" autocomplete="off" spellcheck="false" data-i18n-placeholder="header.streamerPlaceholder" />
+            </label>
+          </section>
+
+          <section class="block">
+            <h3 data-i18n="section.voice">Ses</h3>
+            <div class="volume-row">
+              <div class="volume-head">
+                <label for="volume" data-i18n="label.volume">Ses düzeyi</label>
+                <span class="volume-readout">
+                  <input id="volumeNumber" type="number" min="0" max="300" step="0.5" inputmode="decimal" />
+                  <span class="unit">%</span>
+                  <span id="volumeDb" class="db">0.0 dB</span>
+                </span>
+              </div>
+              <input id="volume" type="range" min="0" max="300" step="any" value="100" class="volume-slider" />
+              <div class="ticks" aria-hidden="true">
+                <span>0</span><span>50</span><span class="at100">100</span><span>150</span><span>200</span><span>250</span><span>300</span>
+              </div>
+              <div class="meter" data-i18n-title="settings.levelMeter">
+                <div class="meter-fill" id="meterFill"></div>
+                <div class="meter-peak" id="meterPeak"></div>
+              </div>
+              <div class="volume-hint">
+                <span data-i18n="volume.hint"></span>
+                <span id="limiterBadge" class="limiter hidden" data-i18n="volume.limiter">LIMITER</span>
+              </div>
+              <p class="note" data-i18n="volume.note"></p>
+            </div>
+
+            <div class="grid-2">
+              <label class="field">
+                <span><span data-i18n="label.speed">Konuşma hızı</span> <em id="speedValue">1.00</em></span>
+                <input id="lengthScale" type="range" min="0.6" max="1.6" step="0.05" value="1" />
+                <span class="range-hint" data-i18n="label.speedHint"></span>
+              </label>
+              <label class="field">
+                <span><span data-i18n="label.gap">Bir yorum bitince sonrakiye kadar</span> <em id="gapValue">2.0 sn</em></span>
+                <input id="minGapSec" type="range" min="1" max="30" step="0.5" value="2" />
+              </label>
+              <label class="field">
+                <span data-i18n="label.perMinute">Dakikada en fazla</span>
+                <input id="maxPerMinute" type="number" min="1" max="120" step="1" value="12" />
+              </label>
+              <label class="field">
+                <span data-i18n="label.queueMax">Kuyruk boyutu</span>
+                <input id="queueMax" type="number" min="1" max="500" step="1" value="200" />
+              </label>
+            </div>
+
+            <div class="test-row">
+              <input id="testText" type="text" value="al bu takatukaları takatukacıya götür. takatukacı takatukaları takatukalamazsa tiktoka iade et" data-i18n-placeholder="label.testText" />
+              <button id="btnTest" class="ghost" disabled data-i18n="btn.test">Sesli test et</button>
+            </div>
+          </section>
+
+          <section class="block">
+            <h3 data-i18n="section.cleanup">Yorum metni</h3>
+            <div class="seg" id="mentionMode" role="radiogroup">
+              <button data-value="read" class="active" data-i18n="mention.read">Kullanıcı adını oku</button>
+              <button data-value="at" data-i18n="mention.at">&quot;at&quot; diye oku</button>
+              <button data-value="strip" data-i18n="mention.strip">Etiketi okuma</button>
+              <button data-value="ignore" data-i18n="mention.ignore">Olduğu gibi bırak</button>
+            </div>
+            <div class="checks">
+              <label><input type="checkbox" id="stripBrackets" /><span data-i18n="check.stripBrackets"></span></label>
+              <label><input type="checkbox" id="englishRouting" /><span data-i18n="check.englishRouting"></span></label>
+            </div>
+            <span class="toggle-note" data-i18n="cleanup.note"></span>
+          </section>
+
+          <section class="block">
+            <h3 data-i18n="profanity.title">Küfür filtresi</h3>
+            <div class="toggle-row">
+              <label class="toggle">
+                <input type="checkbox" id="profanityFilterEnabled" />
+                <span class="switch" aria-hidden="true"></span>
+                <span class="toggle-text"><span data-i18n="profanity.title">Küfür filtresi</span> <em id="profanityState"></em></span>
+              </label>
+              <span class="toggle-note" data-i18n="profanity.note"></span>
+            </div>
+            <div id="profanityControls">
+              <div class="seg" id="profanityAction" role="radiogroup">
+                <button data-value="mask" class="active" data-i18n="profanity.actionMask">Maskele</button>
+                <button data-value="stars" data-i18n="profanity.actionStars">*** ile</button>
+                <button data-value="beep" data-i18n="profanity.actionBeep">Beep</button>
+                <button data-value="skip" data-i18n="profanity.actionSkip">Yorumu atla</button>
+              </div>
+              <label class="field">
+                <span data-i18n="label.maskToken">Maske simgesi</span>
+                <input id="maskToken" type="text" value="***" maxlength="8" />
+              </label>
+              <label class="field">
+                <span data-i18n="label.words">Küfürlü kelimeler (her satıra bir kelime, * joker)</span>
+                <textarea id="profanityWords" rows="6" spellcheck="false"></textarea>
+              </label>
+              <label class="field">
+                <span data-i18n="label.regex">Ek regex kuralları (her satıra bir kural)</span>
+                <textarea id="regexRules" rows="2" spellcheck="false" data-i18n-placeholder="label.regexPlaceholder"></textarea>
+              </label>
+              <div class="checks">
+                <label><input type="checkbox" id="blockProfanityUsers" /><span data-i18n="check.blockProfanityUsers"></span></label>
+              </div>
+            </div>
+          </section>
+
+          <section class="block">
+            <h3 data-i18n="section.spam">Spam & yoğunluk</h3>
+            <div class="checks">
+              <label><input type="checkbox" id="readShortComments" /><span data-i18n="check.readShortComments"></span></label>
+              <label><input type="checkbox" id="speakUsername" /><span data-i18n="check.speakUsername"></span></label>
+              <label><input type="checkbox" id="onlyTurkish" /><span data-i18n="check.onlyTurkish"></span></label>
+              <label><input type="checkbox" id="ignoreOwn" /><span data-i18n="check.ignoreOwn"></span></label>
+              <label><input type="checkbox" id="readGifts" /><span data-i18n="check.readGifts"></span></label>
+              <label><input type="checkbox" id="queueAll" /><span data-i18n="check.queueAll"></span></label>
+            </div>
+            <div class="grid-3">
+              <label class="field"><span data-i18n="label.minLength"></span><input id="minLength" type="number" min="0" max="50" step="1" /></label>
+              <label class="field"><span data-i18n="label.minLetters"></span><input id="minLetters" type="number" min="0" max="50" step="1" /></label>
+              <label class="field"><span data-i18n="label.maxLength"></span><input id="maxLength" type="number" min="10" max="500" step="10" /></label>
+            </div>
+            <div class="grid-2">
+              <label class="field">
+                <span><span data-i18n="label.cooldown"></span> <em id="cooldownValue">5 sn</em></span>
+                <input id="userCooldownSec" type="range" min="0" max="120" step="1" value="5" />
+              </label>
+              <label class="field">
+                <span><span data-i18n="label.duplicate"></span> <em id="duplicateValue">20 sn</em></span>
+                <input id="duplicateWindowSec" type="range" min="0" max="300" step="5" value="20" />
+              </label>
+            </div>
+            <p class="note" data-i18n="spam.note"></p>
+          </section>
+
+          <section class="block">
+            <h3 data-i18n="section.queue">Kuyruk</h3>
+            <div class="queue-actions">
+              <button id="btnSkip" class="ghost" data-i18n="btn.skipCurrent"></button>
+              <button id="btnClear" class="ghost" data-i18n="btn.clearQueue"></button>
+              <button id="btnSimulate" class="ghost" data-i18n="btn.simulate"></button>
+            </div>
+            <div id="queueList" class="queue-list"></div>
+          </section>
+
+          <section class="block">
+            <h3 data-i18n="section.blocklist"></h3>
+            <input id="blockedUsers" type="text" data-i18n-placeholder="label.blocklistPlaceholder" />
+          </section>
+
+          <section class="block">
+            <h3 data-i18n="section.history">Yorum geçmişi</h3>
+            <div class="toggle-row">
+              <label class="toggle">
+                <input type="checkbox" id="historyEnabled" />
+                <span class="switch" aria-hidden="true"></span>
+                <span class="toggle-text"><span data-i18n="check.historyEnabled"></span></span>
+              </label>
+            </div>
+            <div class="queue-actions">
+              <button id="btnClearHistory" class="ghost" data-i18n="btn.clearHistory"></button>
+            </div>
+            <span class="toggle-note" data-i18n="history.note"></span>
+          </section>
+        </aside>
+      </div>
+
+      <footer class="statusbar">
+        <div id="nowPlaying" class="now-playing"></div>
+        <div id="logLine" class="log-line"></div>
+      </footer>
+    </section>
+
+    <!-- ========================== SEKME 2: SETTINGS ========================== -->
+    <section class="tab-panel" id="tab-settings">
+      <div class="settings-wrap">
+
+        <section class="card">
+          <h3 data-i18n="settings.voiceManager">Ses yönetimi</h3>
+          <div class="grid-2">
+            <label class="field">
+              <span data-i18n="settings.activeVoice">Aktif ses</span>
+              <select id="activeVoice"></select>
+            </label>
+            <label class="field hidden" id="speakerField">
+              <span data-i18n="settings.speaker">Konuşmacı</span>
+              <select id="activeSpeaker"></select>
+            </label>
+          </div>
+          <div class="row-actions-inline">
+            <button id="btnImportVoice" class="ghost" data-i18n="btn.importVoice">Gözat > Yükle (.onnx)</button>
+            <button id="btnPreviewVoice" class="ghost" data-i18n="btn.preview">Önizle</button>
+            <span id="voiceStatus" class="hint"></span>
+          </div>
+          <div class="grid-2">
+            <label class="field">
+              <span data-i18n="settings.englishVoice">İngilizce ses</span>
+              <select id="englishVoice"></select>
+            </label>
+            <div class="row-actions-inline">
+              <button id="btnInstallEnglish" class="ghost" data-i18n="btn.installEnglish">Varsayılan EN sesini indir</button>
+              <button id="btnPreviewEnglish" class="ghost" data-i18n="btn.preview">Önizle</button>
+            </div>
+          </div>
+          <div class="checks">
+            <label><input type="checkbox" id="keepBothEngines" /><span data-i18n="check.keepBothEngines"></span></label>
+          </div>
+          <span id="englishVoiceStatus" class="hint"></span>
+        </section>
+
+        <section class="card">
+          <h3 data-i18n="settings.catalog">Piper kataloğu (Hugging Face)</h3>
+          <div class="catalog-toolbar">
+            <input id="voiceSearch" type="search" data-i18n-placeholder="settings.search" />
+            <select id="voiceLanguage"></select>
+            <select id="voiceQuality"></select>
+            <label class="mini-check"><input type="checkbox" id="voiceOnlyInstalled" /><span data-i18n="settings.onlyInstalled"></span></label>
+            <button id="btnRefreshCatalog" class="ghost" data-i18n="btn.refreshCatalog">Listeyi yenile</button>
+          </div>
+          <div id="catalogInfo" class="hint"></div>
+          <div id="catalogList" class="catalog-list"></div>
+        </section>
+
+        <section class="card">
+          <h3 data-i18n="section.interface">Arayüz / Interface</h3>
+          <label class="field">
+            <span data-i18n="settings.language">Arayüz dili</span>
+            <select id="uiLanguage"></select>
+          </label>
+          <p class="note" data-i18n="settings.languageNote"></p>
+        </section>
+
+        <section class="card">
+          <h3 data-i18n="about.title">Hakkında</h3>
+          <div class="row-actions-inline">
+            <span id="aboutVersion" class="hint"></span>
+            <button id="btnSource" class="ghost" data-i18n="about.source"></button>
+          </div>
+          <div class="row-actions-inline">
+            <button id="btnCheckUpdate" class="ghost" data-i18n="btn.checkUpdate"></button>
+            <button id="btnRestartUpdate" class="ghost hidden" data-i18n="btn.restartUpdate"></button>
+          </div>
+          <div id="updateStatus" class="hint"></div>
+          <div class="row-actions-inline">
+            <button id="btnDonatePaypal" class="ghost" data-i18n="btn.donatePaypal"></button>
+            <button id="btnDonateBmc" class="ghost" data-i18n="btn.donateBmc"></button>
+          </div>
+          <p class="note" data-i18n="about.disclaimer"></p>
+        </section>
+
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
