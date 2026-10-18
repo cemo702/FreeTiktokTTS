@@ -36,6 +36,7 @@
   "build": {
     "appId": "io.github.cemo702.freetiktoktts",
     "productName": "FreeTiktokTTS",
+    "artifactName": "${productName}-Setup-${version}.exe",
     "icon": "build/icon.png",
     "directories": {
       "output": "dist"
