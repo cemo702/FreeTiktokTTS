@@ -173,6 +173,24 @@ button.primary:hover:not(:disabled) { filter: brightness(1.08); }
 .block h3 { margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); }
 .hint { text-transform: none; letter-spacing: 0; font-weight: 400; }
 
+/* ---------- Hakkında sekmesi ---------- */
+.about-wrap { max-width: 760px; }
+.about-hero { display: flex; align-items: center; gap: 18px; }
+.about-hero .about-logo { width: 76px; height: 76px; flex-shrink: 0; border-radius: 18px; border: 1px solid var(--border); }
+.about-hero .about-name { margin: 0 0 4px; font-size: 22px; letter-spacing: .3px; }
+.donate-row { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 12px; }
+.donate-btn {
+  display: inline-flex; align-items: center; gap: 12px;
+  padding: 16px 26px; border-radius: 12px; border: none;
+  font-weight: 700; font-size: 15px; cursor: pointer;
+  transition: transform .08s ease, filter .15s ease;
+}
+.donate-btn svg { width: 28px; height: 28px; flex-shrink: 0; }
+.donate-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.donate-btn:active { transform: translateY(1px); }
+.donate-btn.bmc { background: #FF813F; color: #2b1c10; }
+.donate-btn.paypal { background: #0070BA; color: #fff; }
+
 /* ---------- yorum listesi ---------- */
 .comment-list, .queue-list { overflow-y: auto; flex: 1; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
 .queue-list { max-height: 190px; flex: none; }
