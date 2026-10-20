@@ -1,5 +1,7 @@
 # FreeTiktokTTS
 
+**Türkçe** | [English](README.en.md)
+
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/cemo702/FreeTiktokTTS?include_prereleases)](https://github.com/cemo702/FreeTiktokTTS/releases)
 [![Buy me a coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-FF813F?logo=buy-me-a-coffee&logoColor=white)](https://buymeacoffee.com/cemo7028)
@@ -48,7 +50,7 @@ Güncellemeler otomatik: uygulama açılışta kontrol eder, yeni sürüm varsa 
 
 - **İşletim sistemi:** Windows 10 / 11 (64-bit)
 - **İşlemci:** herhangi bir modern çift çekirdek CPU yeterli — **GPU gerekmez**, seslendirme tamamen CPU'da çalışır
-- **RAM:** 4 GB önerilir (uygulama + motor ~600 MB kullanır)
+- **RAM:** 4 GB önerilir (uygulama + motor ~500 MB RAM kullanır)
 - **Disk:** ~1 GB boş alan (uygulama ~600 MB + her ses modeli ~60 MB)
 - **İnternet:** canlı yayın akışı için gerekir; **seslendirme tamamen yereldir** — yorum metni ve ses hiçbir bulut servisine gönderilmez
 
@@ -91,4 +93,4 @@ Bu uygulama ücretsizdir ve öyle kalacak. Geliştirmeyi desteklemek istersen:
 Bu proje [GNU Affero Genel Kamu Lisansı v3.0 (AGPL-3.0)](LICENSE) altında yayınlanır. Kısaca: kullan, değiştir, dağıt — ama türevi de aynı lisansla açık kalmak zorunda.
 
 ---
-*Bu README Türkçe ağırlıklıdır. For an English summary: FreeTiktokTTS reads TikTok live comments aloud with fully local neural TTS, auto-detects English vs Turkish comments, includes advanced filters, persistent searchable history, and self-updates from GitHub Releases. Licensed AGPL-3.0.*
+*Tam İngilizce sürüm: [README.en.md](README.en.md)*
