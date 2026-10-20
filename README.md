@@ -10,6 +10,18 @@
 <em>Free TikTok live comment reader: reads live stream comments aloud with a fully local Piper TTS voice. No cloud, no external speech service — your data never leaves your machine.</em>
 </p>
 
+<p align="center">
+  <img src="docs/screenshots/main.png" alt="FreeTiktokTTS ana ekran — canlı yorumlar kuyrukta, sesli okuma sürüyor" width="820">
+</p>
+
+## Ekran Görüntüleri
+
+| Settings — sesler, filtreler, geçmiş | Hakkında — güncelleme ve destek |
+|:---:|:---:|
+| ![Settings sekmesi — ses katalogu ve ayarlar](docs/screenshots/settings.png) | ![Hakkında sekmesi — sürüm, guncelleme, bagis butonlari](docs/screenshots/about.png) |
+
+> Görsellerdeki yorumlar tanıtım amaçlı örnek verilerdir.
+
 ## Özellikler
 
 - 🔊 **Lokal TTS** — [Piper](https://github.com/OHF-Voice/piper1-gpl) motoru, tamamen çevrimdışı; her yorum cümlesi dakikalar içinde seslendirilir
