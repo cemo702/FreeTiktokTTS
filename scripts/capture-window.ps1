@@ -1,4 +1,4 @@
-param([string]$Title = "TikTok Yorum Ses", [string]$Out = "screen.png")
+param([string]$Title = "FreeTiktokTTS", [string]$Out = "screen.png")
 Add-Type -AssemblyName System.Drawing
 Add-Type @"
 using System;

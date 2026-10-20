@@ -18,13 +18,13 @@
 
 | Settings — sesler, filtreler, geçmiş | Hakkında — güncelleme ve destek |
 |:---:|:---:|
-| ![Settings sekmesi — ses katalogu ve ayarlar](docs/screenshots/settings.png) | ![Hakkında sekmesi — sürüm, guncelleme, bagis butonlari](docs/screenshots/about.png) |
+| ![Settings sekmesi — sesler, filtreler, geçmiş ayarları](docs/screenshots/settings.png) | ![Hakkında sekmesi — sürüm, güncelleme ve bağış butonları](docs/screenshots/about.png) |
 
 > Görsellerdeki yorumlar tanıtım amaçlı örnek verilerdir.
 
 ## Özellikler
 
-- 🔊 **Lokal TTS** — [Piper](https://github.com/OHF-Voice/piper1-gpl) motoru, tamamen çevrimdışı; her yorum cümlesi dakikalar içinde seslendirilir
+- 🔊 **Lokal TTS** — [Piper](https://github.com/OHF-Voice/piper1-gpl) motoru, tamamen çevrimdışı; her yorum anında seslendirilir — bulut servisleri kadar hızlı, ama ses asla bilgisayarından çıkmaz
 - 🌍 **Otomatik dil seçimi** — İngilizce başlayan/2+ İngilizce kelime içeren yorumlar İngilizce sesle, diğerleri Türkçe sesle okunur; iki motor yan yana sıcak kalır
 - 🎁 **Olay desteği** — hediye, abone ve like olayları okunabilir
 - 🧹 **Gelişmiş filtreler** — küfür maskeleme (mask/\*\*\*/beep/atla), spam ve tekrar koruması, kullanıcı soğutması, kara liste/beyaz liste, regex kuralları, link/etiket temizleme
@@ -36,11 +36,23 @@
 
 ## Kurulum
 
-1. [**Releases**](https://github.com/cemo702/FreeTiktokTTS/releases) sayfasından en yeni `FreeTiktokTTS Setup x.y.z.exe` dosyasını indir
+1. [**Releases**](https://github.com/cemo702/FreeTiktokTTS/releases) sayfasından en yeni `FreeTiktokTTS-Setup-x.y.z.exe` dosyasını indir
 2. Kur — varsayılan ayarlarla (kullanıcı başına kurulum, yönetici hakkı gerekmez)
 3. Uygulamayı aç, **Yayıncı** alanına TikTok kullanıcı adını ( @ olmadan ) yaz, **Başlat** de
 
+> Windows ilk seferde SmartScreen uyarısı gösterebilir (imzasız kurulum): **"Daha fazla bilgi" → "Yine de çalıştır"** de. Uygulama açık kaynaklıdır; istersen [kaynak koddan kendin derleyebilirsin](#derleme-geliştiriciler-için).
+
 Güncellemeler otomatik: uygulama açılışta kontrol eder, yeni sürüm varsa indirip yeniden başlatınca kurar.
+
+## Sistem Gereksinimleri
+
+- **İşletim sistemi:** Windows 10 / 11 (64-bit)
+- **İşlemci:** herhangi bir modern çift çekirdek CPU yeterli — **GPU gerekmez**, seslendirme tamamen CPU'da çalışır
+- **RAM:** 4 GB önerilir (uygulama + motor ~600 MB kullanır)
+- **Disk:** ~1 GB boş alan (uygulama ~600 MB + her ses modeli ~60 MB)
+- **İnternet:** canlı yayın akışı için gerekir; **seslendirme tamamen yereldir** — yorum metni ve ses hiçbir bulut servisine gönderilmez
+
+*Piper, onnxruntime'ın CPU çalışma zamanını kullanır; ekran kartı, CUDA veya özel sürücü gerekmez.*
 
 ## Derleme (geliştiriciler için)
 
@@ -53,7 +65,7 @@ npm test             # 115+ test
 npm run dist         # kurulum paketini üret (dist/)
 ```
 
-Gereksinimler: Node.js 20+, Python 3.10+ (venv için), internet (ilk kurulumda model + pip paketleri).
+Derleme gereksinimleri: Node.js 20+, Python 3.10+ (venv için), internet (ilk kurulumda model + pip paketleri).
 
 ## Yasal not
 
