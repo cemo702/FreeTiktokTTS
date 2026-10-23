@@ -1,6 +1,6 @@
 {
   "name": "freetiktoktts",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "FreeTiktokTTS — TikTok canli yayin yorumlarini lokal Piper TTS ile okuyan Electron uygulamasi",
   "license": "AGPL-3.0-only",
   "author": "cemo702",

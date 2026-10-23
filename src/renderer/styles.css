@@ -174,7 +174,6 @@ button.primary:hover:not(:disabled) { filter: brightness(1.08); }
 .hint { text-transform: none; letter-spacing: 0; font-weight: 400; }
 
 /* ---------- Hakkında sekmesi ---------- */
-.about-wrap { max-width: 760px; }
 .about-hero { display: flex; align-items: center; gap: 18px; }
 .about-hero .about-logo { width: 76px; height: 76px; flex-shrink: 0; border-radius: 18px; border: 1px solid var(--border); }
 .about-hero .about-name { margin: 0 0 4px; font-size: 22px; letter-spacing: .3px; }
@@ -362,11 +361,14 @@ input[type="range"]::-moz-range-thumb {
 .settings-wrap {
   overflow-y: auto;
   padding: 16px 18px 28px;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+  align-content: start;
   gap: 14px;
-  max-width: 1080px;
 }
+
+/* Tek kalan kart bos hucre birakmasin: son kart tum satiri kaplar. */
+#tab-settings .settings-wrap > section:last-child { grid-column: 1 / -1; }
 .card {
   background: var(--bg-panel);
   border: 1px solid var(--border);
