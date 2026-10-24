@@ -3,6 +3,7 @@
  */
 import { AudioEngine } from './audio-engine.js';
 import { createTranslator, resolveLanguage, LANGUAGES } from '../shared/i18n.js';
+import { CHANGELOG } from '../shared/changelog.js';
 
 const $ = (id) => document.getElementById(id);
 const audio = new AudioEngine();
@@ -982,6 +983,42 @@ function setUpdateStatus(info) {
   btn.classList.toggle('hidden', info?.state !== 'ready');
 }
 
+/* ------------------------------------------------------------------ */
+/* surum gecmisi (changelog)                                            */
+/* ------------------------------------------------------------------ */
+
+/** Hakkinda sekmesindeki surum gecmisini gecerli dile gore cizer. */
+function renderChangelog() {
+  const el = $('changelogList');
+  if (!el) return;
+  el.replaceChildren();
+  const lines = (entry) => (t.lang === 'en' ? entry.en : entry.tr) ?? [];
+  for (const entry of CHANGELOG) {
+    const item = document.createElement('div');
+    item.className = 'changelog-item';
+
+    const head = document.createElement('div');
+    head.className = 'changelog-head';
+    const ver = document.createElement('span');
+    ver.className = 'ver';
+    ver.textContent = entry.version;
+    const date = document.createElement('span');
+    date.className = 'date';
+    date.textContent = String(entry.date ?? '').split('-').reverse().join('.');
+    head.append(ver, date);
+
+    const list = document.createElement('ul');
+    for (const line of lines(entry)) {
+      const li = document.createElement('li');
+      li.textContent = line;
+      list.append(li);
+    }
+
+    item.append(head, list);
+    el.append(item);
+  }
+}
+
 /** Dil degistiginde tum ekrani (statik + dinamik) yeniden cevirir. */
 function relocalize() {
   applyTranslations();
@@ -995,6 +1032,7 @@ function relocalize() {
   }
   renderComments();
   renderQueue(state.snapshot ?? { queue: [] });
+  renderChangelog();
   if (state.appVersion) $('aboutVersion').textContent = t('about.versionLabel', { version: state.appVersion });
   if (state.sourceStatus) {
     $('statusText').textContent = statusText(state.sourceStatus);
@@ -1020,6 +1058,7 @@ async function boot() {
   fillSettings(state0.settings);
   renderComments();
   renderLanguageOptions();
+  renderChangelog();
   window.__tts = { audio, state, api, t: () => t };
 
   if (state0.source?.status) {

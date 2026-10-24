@@ -357,18 +357,44 @@ input[type="range"]::-moz-range-thumb {
 .queue-item .txt { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .queue-item button { padding: 2px 7px; font-size: 11px; }
 
-/* ---------- settings sekmesi ---------- */
+/* ---------- settings/hakkinda sekmeleri ---------- */
 .settings-wrap {
   overflow-y: auto;
   padding: 16px 18px 28px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+  grid-template-columns: 1fr 1fr;
   align-content: start;
   gap: 14px;
 }
 
-/* Tek kalan kart bos hucre birakmasin: son kart tum satiri kaplar. */
-#tab-settings .settings-wrap > section:last-child { grid-column: 1 / -1; }
+/* Iki kolon: her kart kendi icerik yuksekliginde dizilir (satira gerilmez);
+   uzun kartlar (katalog, guncellemeler) kolonunu doldurur. */
+.tab-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* Hakkinda: guncellemeler karti panelin dibine kadar uzanir. */
+#tab-about .settings-wrap { grid-row: 1 / -1; align-content: stretch; }
+#tab-about .tab-col > .about-updates { flex: 1; }
+
+/* ---------- surum gecmisi (changelog) ---------- */
+.changelog-title {
+  margin: 14px 0 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color: var(--muted);
+}
+.changelog-item { padding: 8px 0; border-top: 1px solid var(--border); }
+.changelog-item:first-child { border-top: 0; padding-top: 0; }
+.changelog-head { display: flex; align-items: baseline; gap: 8px; }
+.changelog-head .ver { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.changelog-head .date { font-size: 11px; color: var(--muted); }
+.changelog-item ul { margin: 6px 0 0; padding-left: 18px; }
+.changelog-item li { margin: 3px 0; font-size: 12.5px; line-height: 1.45; }
 .card {
   background: var(--bg-panel);
   border: 1px solid var(--border);

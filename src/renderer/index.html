@@ -256,6 +256,7 @@
     <!-- ========================== SEKME 2: SETTINGS ========================== -->
     <section class="tab-panel" id="tab-settings">
       <div class="settings-wrap">
+        <div class="tab-col">
 
         <section class="card">
           <h3 data-i18n="settings.voiceManager">Ses yönetimi</h3>
@@ -291,6 +292,17 @@
         </section>
 
         <section class="card">
+          <h3 data-i18n="section.interface">Arayüz / Interface</h3>
+          <label class="field">
+            <span data-i18n="settings.language">Arayüz dili</span>
+            <select id="uiLanguage"></select>
+          </label>
+          <p class="note" data-i18n="settings.languageNote"></p>
+        </section>
+        </div>
+
+        <div class="tab-col">
+        <section class="card">
           <h3 data-i18n="settings.catalog">Piper kataloğu (Hugging Face)</h3>
           <div class="catalog-toolbar">
             <input id="voiceSearch" type="search" data-i18n-placeholder="settings.search" />
@@ -302,15 +314,7 @@
           <div id="catalogInfo" class="hint"></div>
           <div id="catalogList" class="catalog-list"></div>
         </section>
-
-        <section class="card">
-          <h3 data-i18n="section.interface">Arayüz / Interface</h3>
-          <label class="field">
-            <span data-i18n="settings.language">Arayüz dili</span>
-            <select id="uiLanguage"></select>
-          </label>
-          <p class="note" data-i18n="settings.languageNote"></p>
-        </section>
+        </div>
 
       </div>
     </section>
@@ -318,21 +322,13 @@
     <!-- ========================== SEKME 3: HAKKINDA ========================== -->
     <section class="tab-panel" id="tab-about">
       <div class="settings-wrap about-wrap">
+        <div class="tab-col">
         <section class="card about-hero">
           <svg class="about-logo" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" rx="56" fill="#0e1116"/><rect x="42" y="106" width="16" height="44" rx="8" fill="#6366f1"/><rect x="68" y="92" width="16" height="72" rx="8" fill="#6366f1"/><rect x="94" y="78" width="16" height="100" rx="8" fill="#22d3ee"/><rect x="120" y="66" width="16" height="124" rx="8" fill="#e6ecf5"/><rect x="146" y="78" width="16" height="100" rx="8" fill="#22d3ee"/><rect x="172" y="92" width="16" height="72" rx="8" fill="#6366f1"/><rect x="198" y="106" width="16" height="44" rx="8" fill="#6366f1"/></svg>
           <div>
             <h2 class="about-name" data-i18n="app.title">FreeTiktokTTS</h2>
             <span id="aboutVersion" class="hint"></span>
           </div>
-        </section>
-
-        <section class="card">
-          <h3 data-i18n="about.updateTitle">Güncellemeler</h3>
-          <div class="row-actions-inline">
-            <button id="btnCheckUpdate" class="ghost" data-i18n="btn.checkUpdate"></button>
-            <button id="btnRestartUpdate" class="ghost hidden" data-i18n="btn.restartUpdate"></button>
-          </div>
-          <div id="updateStatus" class="hint"></div>
         </section>
 
         <section class="card">
@@ -358,7 +354,21 @@
           </div>
           <p class="note" data-i18n="about.credits"></p>
           <p class="note" data-i18n="about.disclaimer"></p>
+          <h4 class="changelog-title" data-i18n="about.changelogTitle">Sürüm geçmişi</h4>
+          <div id="changelogList" class="changelog"></div>
         </section>
+        </div>
+
+        <div class="tab-col">
+        <section class="card about-updates">
+          <h3 data-i18n="about.updateTitle">Güncellemeler</h3>
+          <div class="row-actions-inline">
+            <button id="btnCheckUpdate" class="ghost" data-i18n="btn.checkUpdate"></button>
+            <button id="btnRestartUpdate" class="ghost hidden" data-i18n="btn.restartUpdate"></button>
+          </div>
+          <div id="updateStatus" class="hint"></div>
+        </section>
+        </div>
       </div>
     </section>
   </main>
