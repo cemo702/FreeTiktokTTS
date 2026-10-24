@@ -64,3 +64,53 @@ test('TikTokSource: kumule totalUser alani anlik izleyici olarak kullanilmaz', a
 
   await source.stop();
 });
+
+test('TikTokSource: STREAM_END streamEnd olayi yayar ve bekliyor durumuna gecer', async () => {
+  const connection = new FakeTikTokConnection(null);
+  const source = new TikTokSource({ createConnection: () => connection });
+  let streamEnded = false;
+  source.on('streamEnd', () => { streamEnded = true; });
+
+  await source.start('kanal');
+  assert.equal(source.getStatus().status, 'canli');
+
+  connection.emit(WebcastEvent.STREAM_END);
+  assert.equal(streamEnded, true, 'streamEnd olayi yayinmali');
+  assert.equal(source.getStatus().status, 'bekliyor');
+
+  await source.stop();
+  assert.equal(source.getStatus().status, 'kapali');
+});
+
+test('TikTokSource: yeniden denemede eski baglanti kapatilir, hayalet yorum gelmez', async () => {
+  const conns = [];
+  const source = new TikTokSource({
+    createConnection: () => {
+      const c = new FakeTikTokConnection(null);
+      c.disconnected = false;
+      c.disconnect = async () => { c.disconnected = true; };
+      conns.push(c);
+      return c;
+    }
+  });
+  const comments = [];
+  source.on('comment', (c) => comments.push(c));
+
+  await source.start('kanal');
+  assert.equal(conns.length, 1);
+
+  // Yayin biter -> kisa bir sure sonra yeniden deneme gelir.
+  conns[0].emit(WebcastEvent.STREAM_END);
+  await new Promise((resolve) => setTimeout(resolve, 2400));
+
+  assert.equal(conns.length, 2, 'yeniden deneme yeni baglanti kurmali');
+  assert.equal(conns[0].disconnected, true, 'eski baglanti kapatilmali');
+  assert.equal(conns[0].listenerCount(WebcastEvent.CHAT), 0, 'eski baglantinin dinleyicileri kaldirilmali');
+
+  // Eski (hayalet) socket'ten gelen yorum yutulur.
+  conns[0].emit(WebcastEvent.CHAT, { common: { msgId: '999' }, user: { uniqueId: 'u' }, content: 'hayalet yorum' });
+  assert.equal(comments.length, 0);
+
+  await source.stop();
+  assert.equal(conns[1].disconnected, true);
+});

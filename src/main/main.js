@@ -125,7 +125,19 @@ class App {
     this.source.on('event', (event) => this.pipeline?.ingest(event));
     this.source.on('log', (message) => this.#logRaw(message));
     this.source.on('status', (status) => this.#send(IPC.EVT_STATUS, status));
-    this.source.on('connected', (info) => this.#log('log.connected', { user: info.username }));
+    this.source.on('connected', (info) => {
+      this.#log('log.connected', { user: info.username });
+      this.pipeline?.start(); // yayin (yeniden) acildi: is hatti devam eder
+    });
+    this.source.on('streamEnd', () => {
+      // Yayin kapandi: aktif cumle biter ama birikmis kuyruk okunmaz
+      // ('dropped' olarak gecmise yazilir). Yeniden baglanma denemelerinde
+      // TikTok'un gonderdigi eski yorum paketi de msgId tekrar korumasina
+      // takilir: kapali yayinda eski yorum tekrar okunmaz.
+      this.pipeline?.clearQueue();
+      this.pipeline?.pause();
+      this.#log('log.streamQueueCleared');
+    });
 
     this.pipeline = new Pipeline({ tts: this.#ttsProxy(), getSettings: () => this.settings, resolveTts: (lang) => this.#resolveTts(lang) });
     this.pipeline.applySettings(this.settings);
@@ -476,6 +488,9 @@ async #applyVoice(voice, { announce = true } = {}) {
 
     ipcMain.handle(IPC.STOP, async () => {
       await this.source.stop();
+      // Kuyruk da bosaltilir: bir sonraki baglanmada onceki oturumun birikmis
+      // yorumlari ("eski yorumlar") tekrar okunmasin.
+      this.pipeline.clearQueue();
       this.pipeline.pause();
       return { ok: true };
     });

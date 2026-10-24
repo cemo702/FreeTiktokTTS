@@ -11,6 +11,14 @@ import { EventEmitter } from 'node:events';
 import { detectCommentLanguage, evaluateComment, toSpeakable } from './filters.js';
 import { SpeechQueue } from './speech-queue.js';
 
+/**
+ * TikTok, (yeniden) baglanmalarda son yorumlari bir "gecmis paketi" olarak
+ * tekrar gonderir (connector WS parametresi: history_comment_count). Ayni
+ * msgId ikinci kez gelirse yorum sessizce dusurulur; sinir, RAM etkisini
+ * ~100 KB altinda tutar (~5000 msgId, tipik akista saatlerce kapsama).
+ */
+const SEEN_IDS_MAX = 5_000;
+
 export class Pipeline extends EventEmitter {
   constructor({ tts, getSettings, resolveTts }) {
     super();
@@ -19,6 +27,7 @@ export class Pipeline extends EventEmitter {
     // Dile gore motor cozumu (main verir); yoksa tek motor kullanilir.
     this.resolveTts = resolveTts ?? (async () => this.tts);
     this.queue = new SpeechQueue();
+    this.seenIds = new Set();   // msgId tekrar korumasi (TikTok gecmis paketi)
     this.state = { lastText: new Map(), cooldown: new Map() };
     this.current = null;      // { item, startedAt }
     this.prefetched = null;   // { item, promise }
@@ -73,6 +82,20 @@ export class Pipeline extends EventEmitter {
 
   /** Bir yorumu alir ve degerlendirir. */
   ingest(comment) {
+    // Tekrar korumasi: ayni msgId birkac kez teslim edilebilir (yayin kapanip
+    // yeniden baglanirken TikTok'un gonderdigi gecmis paketi). Ikinci teslimat
+    // istatistige ve gecmise hic yazilmadan yutulur: yorum bir kez okunur.
+    const dedupId = String(comment?.id ?? '');
+    if (dedupId) {
+      if (this.seenIds.has(dedupId)) {
+        return { accepted: false, reason: 'duplicate', duplicate: true };
+      }
+      this.seenIds.add(dedupId);
+      if (this.seenIds.size > SEEN_IDS_MAX) {
+        this.seenIds.delete(this.seenIds.values().next().value);
+      }
+    }
+
     const settings = this.getSettings();
     this.stats.received += 1;
     this.#trackRate();

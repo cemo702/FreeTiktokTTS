@@ -84,3 +84,25 @@ test('pump: her dil kendi motoruyla sentezlenir, ornek hizi motordan gelir', asy
   assert.equal(audios[0].lang, 'en');
   assert.equal(audios[1].lang, 'tr');
 });
+
+test('ingest: ayni msgId ikinci kez gelirse dusurulur (TikTok gecmis tekrari)', () => {
+  const p = new Pipeline({ tts: fakeTts(22050), getSettings: baseSettings });
+  const r1 = p.ingest({ id: 'msg-1', userId: 'u1', userName: 'Ali', text: 'selam' });
+  const r2 = p.ingest({ id: 'msg-1', userId: 'u1', userName: 'Ali', text: 'selam' });
+  assert.equal(r1.accepted, true);
+  assert.equal(r2.accepted, false);
+  assert.equal(r2.reason, 'duplicate');
+  assert.equal(r2.duplicate, true);
+  assert.equal(p.queue.length, 1);
+  assert.equal(p.stats.received, 1, 'tekrar teslimat istatistigi sisirmez');
+});
+
+test('ingest: farkli msgIDler ve idsi olmayan olaylar tekrar korumasina takilmaz', () => {
+  const p = new Pipeline({ tts: fakeTts(22050), getSettings: baseSettings });
+  assert.equal(p.ingest({ id: 'msg-1', userId: 'u1', userName: 'Ali', text: 'selam' }).accepted, true);
+  assert.equal(p.ingest({ id: 'msg-2', userId: 'u2', userName: 'Veli', text: 'iyi yayin' }).accepted, true);
+  // Hediye/takip olaylarinin idsi olmayabilir: koruma devre disi kalmali.
+  assert.equal(p.ingest({ userId: 'u3', userName: 'Can', text: 'gul x1', priority: 5 }).accepted, true);
+  assert.equal(p.ingest({ userId: 'u4', userName: 'Ece', text: 'gul x2', priority: 5 }).accepted, true);
+  assert.equal(p.queue.length, 4);
+});

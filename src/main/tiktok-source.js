@@ -124,13 +124,19 @@ export class TikTokSource extends EventEmitter {
 
   async #connect() {
     if (this.stopped) return;
+    // Onceki baglantiyi once kapat: uzerine yazilan socket'ler kapanmaz ve
+    // dinleyicileri canli kalirdi -> cift "Yayin bitti" ve tekrar yorum paketi.
+    await this.#closeConnection();
     this.#resetViewerState();
     this.#setStatus('baglaniyor');
     const conn = this.createConnection(this.username, { retryCount: 0 });
     this.connection = conn;
+    // Hayalet olay korumasi: bu socket artik guncel degilse olaylari yoksay.
+    const isCurrent = () => this.connection === conn;
 
-    conn.on(WebcastEvent.ROOM_USER, (data) => this.#handleRoomUser(data));
+    conn.on(WebcastEvent.ROOM_USER, (data) => { if (isCurrent()) this.#handleRoomUser(data); });
     conn.on(WebcastEvent.CHAT, (data) => {
+      if (!isCurrent()) return;
       const { id, name } = readUser(data);
       this.emit('comment', {
         id: String(data.common?.msgId ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
@@ -143,11 +149,13 @@ export class TikTokSource extends EventEmitter {
 
     if (this.settings?.readGifts) {
       conn.on(WebcastEvent.GIFT, (data) => {
+        if (!isCurrent()) return;
         const { id, name } = readUser(data);
         const gift = data.gift ?? data.giftDetails ?? {};
         const count = data.repeatCount ?? 1;
         const giftName = gift.name ?? gift.describe ?? data.displayTextForAudience ?? data.trayDisplayText ?? 'hediye';
         this.emit('event', {
+          id: String(data.common?.msgId ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
           kind: 'hediye',
           userId: id,
           userName: name,
@@ -158,8 +166,10 @@ export class TikTokSource extends EventEmitter {
       });
 
       conn.on(WebcastEvent.SUB_NOTIFY, (data) => {
+        if (!isCurrent()) return;
         const { id, name } = readUser(data);
         this.emit('event', {
+          id: String(data.common?.msgId ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
           kind: 'abone',
           userId: id,
           userName: name || 'bir kullanici',
@@ -170,8 +180,10 @@ export class TikTokSource extends EventEmitter {
       });
 
       conn.on(WebcastEvent.FOLLOW, (data) => {
+        if (!isCurrent()) return;
         const { id, name } = readUser(data);
         this.emit('event', {
+          id: String(data.common?.msgId ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
           kind: 'takip',
           userId: id,
           userName: name || 'bir kullanici',
@@ -183,14 +195,16 @@ export class TikTokSource extends EventEmitter {
     }
 
     conn.on(WebcastEvent.STREAM_END, () => {
+      if (!isCurrent()) return;
       this.emit('log', this.t('log.streamEnd'));
+      this.emit('streamEnd');
       this.#resetViewerState();
       this.#setStatus('bekliyor');
       this.#scheduleReconnect();
     });
 
     conn.on(ControlEvent.DISCONNECTED, () => {
-      if (this.stopped) return;
+      if (this.stopped || !isCurrent()) return;
       this.emit('log', this.t('log.disconnected'));
       this.#resetViewerState();
       this.#setStatus('hata');
@@ -198,6 +212,7 @@ export class TikTokSource extends EventEmitter {
     });
 
     conn.on(ControlEvent.ERROR, (err) => {
+      if (!isCurrent()) return;
       this.emit('log', this.t('log.tiktokError', { message: describeError(err) }));
     });
 
@@ -217,6 +232,10 @@ export class TikTokSource extends EventEmitter {
       this.#setStatus('hata');
       // Kullanici yayinda degilse surekli denemek yerine bekle
       if (OFFLINE_RE.test(message)) this.#setStatus('bekliyor');
+      // Basarisiz socket hemen kapatilir: TikTok bazen baglanma tamamlanmadan
+      // eski yorum paketi gonderip sonra reddediyor; o socket'in dinleyicileri
+      // kalmasin.
+      await this.#closeConnection();
       this.#scheduleReconnect();
     }
   }
@@ -306,17 +325,26 @@ export class TikTokSource extends EventEmitter {
     };
   }
 
+  /**
+   * Mevcut baglantiyi kapatir. Once dinleyiciler kaldirilir (kapali socket
+   * hayalet olay uretmesin: cift "Yayin bitti", tekrar teslim edilen eski
+   * yorum paketi), sonra baglanti kesilir.
+   */
+  async #closeConnection() {
+    const conn = this.connection;
+    this.connection = null;
+    if (!conn) return;
+    try { conn.removeAllListeners?.(); } catch { /* yoksay */ }
+    try {
+      await conn.disconnect();
+    } catch { /* yoksay */ }
+  }
+
   async stop() {
     this.stopped = true;
     clearTimeout(this.timer);
     this.#resetViewerState();
-    const conn = this.connection;
-    this.connection = null;
-    if (conn) {
-      try {
-        await conn.disconnect();
-      } catch { /* yoksay */ }
-    }
+    await this.#closeConnection();
     this.#setStatus('kapali');
   }
 }
