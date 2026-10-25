@@ -11,6 +11,16 @@
  */
 export const CHANGELOG = [
   {
+    version: '1.3.1',
+    date: '2026-10-25',
+    tr: [
+      'Sürüm geçmişi sağ kolona taşındı: artık Güncellemeler kartının içinde, güncelleme durumunun altında listeleniyor; uzayan geçmiş kartın içinde kayıyor'
+    ],
+    en: [
+      'Version history moved to the right column: now listed inside the Updates card below the update status; long histories scroll within the card'
+    ]
+  },
+  {
     version: '1.3.0',
     date: '2026-10-24',
     tr: [

@@ -376,18 +376,23 @@ input[type="range"]::-moz-range-thumb {
   min-width: 0;
 }
 
-/* Hakkinda: guncellemeler karti panelin dibine kadar uzanir. */
+/* Hakkinda: guncellemeler karti panelin dibine kadar uzanir; surum gecmisi
+   kartin icinde kalan alani doldurur ve kendi icinde kayar. */
 #tab-about .settings-wrap { grid-row: 1 / -1; align-content: stretch; }
-#tab-about .tab-col > .about-updates { flex: 1; }
+#tab-about .tab-col > .about-updates { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 
 /* ---------- surum gecmisi (changelog) ---------- */
 .changelog-title {
   margin: 14px 0 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: .6px;
   color: var(--muted);
 }
+/* Liste guncel kartta kalan alani doldurur; tasan kisim kart icinde kayar. */
+.changelog { flex: 1; min-height: 0; overflow-y: auto; }
 .changelog-item { padding: 8px 0; border-top: 1px solid var(--border); }
 .changelog-item:first-child { border-top: 0; padding-top: 0; }
 .changelog-head { display: flex; align-items: baseline; gap: 8px; }
