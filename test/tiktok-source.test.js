@@ -114,3 +114,49 @@ test('TikTokSource: yeniden denemede eski baglanti kapatilir, hayalet yorum gelm
   await source.stop();
   assert.equal(conns[1].disconnected, true);
 });
+
+test('TikTokSource: disconnect cozulmezse bile STREAM_END sonrasi yeniden baglanti denenir', async () => {
+  const conns = [];
+  const source = new TikTokSource({
+    createConnection: () => {
+      const c = new FakeTikTokConnection(null);
+      // Olu/yarim-acik socket: kapanma hic tamamlanmaz.
+      c.disconnect = () => new Promise(() => {});
+      conns.push(c);
+      return c;
+    }
+  });
+
+  await source.start('kanal');
+  assert.equal(conns.length, 1);
+
+  conns[0].emit(WebcastEvent.STREAM_END);
+  await new Promise((resolve) => setTimeout(resolve, 2400));
+
+  assert.equal(conns.length, 2, 'asili disconnect yeniden denemeyi kilitlememeli');
+  assert.equal(source.getStatus().status, 'canli');
+
+  await source.stop();
+});
+
+test('TikTokSource: basarisiz connect sonrasi asili disconnect donguyu durdurmaz', async () => {
+  let attempts = 0;
+  const source = new TikTokSource({
+    createConnection: () => {
+      attempts += 1;
+      const c = new FakeTikTokConnection(null);
+      c.disconnect = () => new Promise(() => {});
+      c.connect = async () => { throw new Error('baglanti reddedildi'); };
+      return c;
+    }
+  });
+
+  // Ilk deneme basarisiz olur; hata yakalanip yeniden deneme planlanmali.
+  await source.start('kanal');
+  assert.equal(attempts, 1);
+
+  await new Promise((resolve) => setTimeout(resolve, 2400));
+  assert.ok(attempts >= 2, 'asili disconnect sonraki denemeyi engellememeli');
+
+  await source.stop();
+});

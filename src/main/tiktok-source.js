@@ -126,7 +126,7 @@ export class TikTokSource extends EventEmitter {
     if (this.stopped) return;
     // Onceki baglantiyi once kapat: uzerine yazilan socket'ler kapanmaz ve
     // dinleyicileri canli kalirdi -> cift "Yayin bitti" ve tekrar yorum paketi.
-    await this.#closeConnection();
+    this.#closeConnection();
     this.#resetViewerState();
     this.#setStatus('baglaniyor');
     const conn = this.createConnection(this.username, { retryCount: 0 });
@@ -235,7 +235,7 @@ export class TikTokSource extends EventEmitter {
       // Basarisiz socket hemen kapatilir: TikTok bazen baglanma tamamlanmadan
       // eski yorum paketi gonderip sonra reddediyor; o socket'in dinleyicileri
       // kalmasin.
-      await this.#closeConnection();
+      this.#closeConnection();
       this.#scheduleReconnect();
     }
   }
@@ -306,7 +306,14 @@ export class TikTokSource extends EventEmitter {
     const delay = RECONNECT_DELAYS[Math.min(this.retryIndex, RECONNECT_DELAYS.length - 1)];
     this.retryIndex += 1;
     this.emit('log', this.t('log.retrying', { seconds: Math.round(delay / 1000) }));
-    this.timer = setTimeout(() => this.#connect(), delay);
+    this.timer = setTimeout(() => {
+      // #connect() beklenmedik bir hatayla reddedilse bile dongu olmesin:
+      // hatayi logla ve bir sonraki denemeyi planla.
+      Promise.resolve(this.#connect()).catch((err) => {
+        this.emit('log', this.t('log.tiktokError', { message: describeError(err) }));
+        this.#scheduleReconnect();
+      });
+    }, delay);
   }
 
   #setStatus(status) {
@@ -329,14 +336,18 @@ export class TikTokSource extends EventEmitter {
    * Mevcut baglantiyi kapatir. Once dinleyiciler kaldirilir (kapali socket
    * hayalet olay uretmesin: cift "Yayin bitti", tekrar teslim edilen eski
    * yorum paketi), sonra baglanti kesilir.
+   *
+   * disconnect() BILEREK beklenmez: olu/yarim-acik socket'te kapanma
+   * el sikismasi hic cozulmeyebilir. Await edilirse yeniden deneme dongusu
+   * kilitlenir ve uygulama yayin acildiginda sessiz kalir.
    */
-  async #closeConnection() {
+  #closeConnection() {
     const conn = this.connection;
     this.connection = null;
     if (!conn) return;
     try { conn.removeAllListeners?.(); } catch { /* yoksay */ }
     try {
-      await conn.disconnect();
+      Promise.resolve(conn.disconnect?.()).catch(() => {});
     } catch { /* yoksay */ }
   }
 
@@ -344,7 +355,7 @@ export class TikTokSource extends EventEmitter {
     this.stopped = true;
     clearTimeout(this.timer);
     this.#resetViewerState();
-    await this.#closeConnection();
+    this.#closeConnection();
     this.#setStatus('kapali');
   }
 }

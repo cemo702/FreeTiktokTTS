@@ -11,6 +11,16 @@
  */
 export const CHANGELOG = [
   {
+    version: '1.3.2',
+    date: '2026-10-28',
+    tr: [
+      'Otomatik bağlanma düzeltildi: kapanmayan bir soket yeniden deneme döngüsünü kilitleyip uygulamayı sessiz bırakabiliyordu; yayın açıldığında artık kendiliğinden bağlanıp okumaya başlıyor'
+    ],
+    en: [
+      'Fixed automatic connection: a socket that never finished closing could block the reconnect loop and leave the app silent; it now connects and starts reading by itself when the stream goes live'
+    ]
+  },
+  {
     version: '1.3.1',
     date: '2026-10-25',
     tr: [
