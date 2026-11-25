@@ -9,6 +9,14 @@ import { TikTokLiveConnection, WebcastEvent, ControlEvent } from 'tiktok-live-co
 
 const RECONNECT_DELAYS = [2_000, 5_000, 10_000, 20_000, 30_000];
 const VIEWER_FALLBACK_DELAY_MS = 30_000;
+/**
+ * Baglanti "canli" gorunup WebSocket'ten hic olay gelmiyorsa (zombi socket)
+ * bu sure sonunda kendiliginden yeniden baglanilir. TikTok canli yayinda
+ * begeni/izleyici/sohbet olaylari duzenli akar; tam sessizlik olagan degil.
+ */
+const SILENT_CONNECTION_MS = 90_000;
+/** TikTok SDK'nin kendi HTTP (10 sn) ve WS (20 sn) limitlerine ek guvenlik payi. */
+const CONNECT_TIMEOUT_MS = 45_000;
 
 /** TikTok sayaclari sayi ya da sayisal metin olarak gelebilir. */
 export function normalizeViewerCount(value) {
@@ -100,6 +108,11 @@ export class TikTokSource extends EventEmitter {
     this.viewerFallbackTimer = null;
     this.viewerFetchInFlight = false;
     this.lastViewerEventAt = 0;
+    // Sessiz baglanti bekcisi: son WS olayinin zamani.
+    this.lastEventAt = 0;
+    this.silenceTimeoutMs = options.silenceTimeoutMs ?? SILENT_CONNECTION_MS;
+    this.viewerFallbackMs = options.viewerFallbackMs ?? VIEWER_FALLBACK_DELAY_MS;
+    this.connectTimeoutMs = options.connectTimeoutMs ?? CONNECT_TIMEOUT_MS;
     this.settings = null;
   }
 
@@ -216,17 +229,33 @@ export class TikTokSource extends EventEmitter {
       this.emit('log', this.t('log.tiktokError', { message: describeError(err) }));
     });
 
+    // Her kodlanmis WebSocket mesaji (sohbet, begeni, izleyici, kontrol...)
+    // baglantinin canli oldugunun kanitidir; sessizlik bekcisi bunu izler.
+    conn.on(ControlEvent.DECODED_DATA, () => {
+      if (isCurrent()) this.lastEventAt = Date.now();
+    });
+    // Cozulemeyen ama gelen cerceveler de canlilik isaretidir (pong vb.).
+    conn.on(ControlEvent.WEBSOCKET_DATA, () => {
+      if (isCurrent()) this.lastEventAt = Date.now();
+    });
+
     try {
-      await conn.connect();
+      await this.#connectWithTimeout(conn);
+      // Bu socket bu arada kapatildiysa/yerine yenisi geldiyse olaylari yayma:
+      // eski bir baglanti 'connected' yayip durumu yanlis guncellemesin.
+      if (this.stopped || !isCurrent()) return;
       this.roomInfo = conn.roomInfo ?? null;
       this.#setViewerCount(readRoomInfoCount(this.roomInfo));
       this.startedAt = Date.now();
       this.retryIndex = 0;
+      this.lastEventAt = Date.now();
       this.#setStatus('canli');
       this.emit('connected', { username: this.username, roomInfo: this.roomInfo });
       this.emit('log', this.t('log.liveConnected', { user: this.username, viewers: formatViewerCount(this.viewerCount) }));
       this.#scheduleViewerFallback();
     } catch (err) {
+      // Eski bir deneme, araya giren yeni baglantiyi kapatmasin.
+      if (this.stopped || !isCurrent()) return;
       const message = describeError(err);
       this.emit('log', this.t('log.connectRetry', { message }));
       this.#setStatus('hata');
@@ -263,6 +292,7 @@ export class TikTokSource extends EventEmitter {
     this.roomInfo = null;
     this.lastViewerEventAt = 0;
     this.viewerFetchInFlight = false;
+    this.lastEventAt = 0;
     clearTimeout(this.viewerFallbackTimer);
     this.viewerFallbackTimer = null;
   }
@@ -273,19 +303,34 @@ export class TikTokSource extends EventEmitter {
     if (this.stopped || this.status !== 'canli') return;
     this.viewerFallbackTimer = setTimeout(() => {
       void this.#refreshViewerCount();
-    }, VIEWER_FALLBACK_DELAY_MS);
+    }, this.viewerFallbackMs);
     this.viewerFallbackTimer.unref?.();
   }
 
   async #refreshViewerCount() {
     this.viewerFallbackTimer = null;
     if (this.stopped || this.status !== 'canli') return;
-    if (this.viewerFetchInFlight || Date.now() - this.lastViewerEventAt < VIEWER_FALLBACK_DELAY_MS) {
+    // Zombi baglanti kontrolu EN ONCE: fetchRoomInfo asili kalsa bile
+    // sessizlik bekcisi calismaya devam eder.
+    if (this.lastEventAt && Date.now() - this.lastEventAt >= this.silenceTimeoutMs) {
+      this.emit('log', this.t('log.connectionSilent', { seconds: Math.round(this.silenceTimeoutMs / 1000) }));
+      this.retryIndex = 0;
+      this.#scheduleReconnect();
+      return;
+    }
+    if (this.viewerFetchInFlight) {
+      this.#scheduleViewerFallback();
+      return;
+    }
+    if (Date.now() - this.lastViewerEventAt < this.viewerFallbackMs) {
       this.#scheduleViewerFallback();
       return;
     }
     const conn = this.connection;
-    if (!conn || typeof conn.fetchRoomInfo !== 'function') return;
+    if (!conn || typeof conn.fetchRoomInfo !== 'function') {
+      this.#scheduleViewerFallback();
+      return;
+    }
     this.viewerFetchInFlight = true;
     try {
       const roomInfo = await conn.fetchRoomInfo();
@@ -298,6 +343,24 @@ export class TikTokSource extends EventEmitter {
       this.viewerFetchInFlight = false;
       this.#scheduleViewerFallback();
     }
+  }
+
+  /**
+   * conn.connect() SDK icinde bazi durumlarda hic cozulmeyebilir (imza/HTTP
+   * asamasi). Beklemek yeniden deneme dongusunu sonsuza kadar kilitler;
+   * zaman asiminda hata uretip dongunun devam etmesini sagliyoruz.
+   */
+  #connectWithTimeout(conn) {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error(`Baglanti ${Math.round(this.connectTimeoutMs / 1000)} sn icinde kurulamadi`));
+      }, this.connectTimeoutMs);
+      timer.unref?.();
+      Promise.resolve(conn.connect()).then(
+        (value) => { clearTimeout(timer); resolve(value); },
+        (err) => { clearTimeout(timer); reject(err); }
+      );
+    });
   }
 
   #scheduleReconnect() {

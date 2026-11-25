@@ -11,6 +11,22 @@
  */
 export const CHANGELOG = [
   {
+    version: '1.3.3',
+    date: '2026-11-25',
+    tr: [
+      'Bağlantı canlı görünüp hiç olay gelmediğinde (sessiz soket) uygulama 90 sn içinde kendiliğinden yeniden bağlanıyor; yayın açıldığında Durdur+Başlat gerekmiyor',
+      'Bağlantı kurulumu 45 sn içinde tamamlanmazsa sonsuza kadar asılı kalmak yerine yeniden deneniyor',
+      'TTS motoru yanıt vermezse 20 sn sonra istek iptal edilip motor yeniden başlatılıyor; tek bir takılma tüm okumayı kilitlemiyor',
+      'Ses motoru açılışta kurulamazsa uygulama kilitlenmiyor; ilk tıklamada ve periyodik olarak yeniden deneniyor'
+    ],
+    en: [
+      'When a connection looks live but no events arrive (silent socket), the app reconnects by itself within 90 seconds; no manual Stop+Start needed when the stream goes live',
+      'If connection setup does not finish within 45 seconds, it retries instead of hanging forever',
+      'If the TTS engine stops responding, the request is cancelled after 20 seconds and the engine is restarted; a single stall no longer locks all reading',
+      'If the audio engine cannot start, the app no longer locks up; it retries on the first click and periodically'
+    ]
+  },
+  {
     version: '1.3.2',
     date: '2026-10-28',
     tr: [

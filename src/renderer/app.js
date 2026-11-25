@@ -600,6 +600,46 @@ function playPayload(payload) {
   }
 }
 
+let audioInitErrorLogged = false;
+
+/**
+ * Ses motorunu kur. AudioContext bazen acilista kurulamaz (kaynak/izin
+ * hatasi); bu durumda yayin/okuma hattini kilitlemeden false doner ve
+ * sonraki etkilesimde/periyodik denemede yeniden kurulur.
+ */
+async function initAudio() {
+  if (audio.ready) {
+    if (audio.ctx?.state === 'suspended') {
+      try { await audio.resume(); } catch { /* etkilesimle yeniden denenir */ }
+    }
+    return true;
+  }
+  try {
+    await audio.init();
+    applyVolume(state.settings?.volumePercent ?? 100, { save: false });
+    audioInitErrorLogged = false;
+    return true;
+  } catch (err) {
+    // Yarim kalan AudioContext'i kapat: sonraki deneme temiz baslasin.
+    if (audio.ctx && !audio.ready) {
+      try { await audio.ctx.close(); } catch { /* yoksay */ }
+      audio.ctx = null;
+    }
+    if (!audioInitErrorLogged) {
+      audioInitErrorLogged = true;
+      setLog(t('log.audioInitError', { message: err.message }), 'error');
+    }
+    return false;
+  }
+}
+
+/** Ses hazir olmadan biriken en son sesi calar (30 sn'den eskiyse atar). */
+function drainPendingAudio() {
+  const pending = state.pendingAudio;
+  state.pendingAudio = null;
+  if (pending && Date.now() - pending.at < 30_000) playPayload(pending.payload);
+}
+
 function wireMainEvents() {
   api.onCommentQueued((c) => addComment({
     id: c.id, queueId: c.queueId, userId: c.userId, userName: c.userName, text: c.text,
@@ -760,7 +800,7 @@ function wireControls() {
   $('voiceChip').addEventListener('click', () => switchTab('settings'));
 
   $('btnStart').addEventListener('click', async () => {
-    await audio.init();
+    await initAudio();
     const username = $('username').value.trim();
     if (!username) {
       setLog(t('log.enterStreamer'), 'error');
@@ -778,7 +818,7 @@ function wireControls() {
   });
 
   $('btnTest').addEventListener('click', async () => {
-    await audio.init();
+    await initAudio();
     try {
       const result = await api.speakTest($('testText').value);
       if (result && result.ok === false) setLog(result.error ?? t('log.engineNotReady'), 'error');
@@ -798,7 +838,7 @@ function wireControls() {
   });
 
   $('btnSimulate').addEventListener('click', async () => {
-    await audio.init();
+    await initAudio();
     await api.simulate(10);
     setLog(t('log.simulated'));
   });
@@ -856,12 +896,12 @@ function wireControls() {
   $('activeSpeaker').addEventListener('change', (e) => api.setSettings({ speakerId: Number(e.target.value) }));
 
   $('btnImportVoice').addEventListener('click', async () => {
-    await audio.init();
+    await initAudio();
     const result = await api.importVoice();
     if (result.ok) await refreshVoices();
   });
   $('btnPreviewVoice').addEventListener('click', async () => {
-    await audio.init();
+    await initAudio();
     const result = await api.previewVoice(state.activeVoiceId);
     if (!result?.ok && result?.error) setLog(result.error, 'error');
   });
@@ -874,7 +914,7 @@ function wireControls() {
     await refreshVoices();
   });
   $('btnPreviewEnglish').addEventListener('click', async () => {
-    await audio.init();
+    await initAudio();
     const result = await api.previewEnglishVoice(state.englishVoiceId || null);
     if (!result?.ok && result?.error) setLog(result.error, 'error');
   });
@@ -916,7 +956,7 @@ function wireControls() {
       if (result.ok) state.activeVoiceId = id;
       await refreshVoices();
     } else if (act === 'preview') {
-      await audio.init();
+      await initAudio();
       await api.previewVoice(id);
     }
   });
@@ -1081,24 +1121,27 @@ async function boot() {
 
   /**
    * Ses motorunu ETKILESIM BEKLEMEDEN kur (main'de autoplay-policy anahtari
-   * ayarli). Baglanilan yayindan gelen ilk yorum aninda okunur.
+   * ayarli). Baglanilan yayindan gelen ilk yorum aninda okunur. Basarisiz
+   * olursa okuma hatti durmaz: tiklamada ve periyodik olarak yeniden denenir.
    */
-  const initAudio = async () => {
-    await audio.init();
-    applyVolume(state.settings?.volumePercent ?? 100, { save: false });
-    if (state.pendingAudio) {
-      const pending = state.pendingAudio;
-      state.pendingAudio = null;
-      if (Date.now() - pending.at < 30_000) playPayload(pending.payload);
-    }
+  if (await initAudio()) drainPendingAudio();
+
+  const onGesture = async () => {
+    if (!(await initAudio())) return;
+    document.removeEventListener('click', onGesture);
+    document.removeEventListener('keydown', onGesture);
+    drainPendingAudio();
   };
-  await initAudio();
-  if (!audio.ready || audio.ctx?.state !== 'running') {
-    document.addEventListener('click', initAudio, { once: true });
-    document.addEventListener('keydown', initAudio, { once: true });
-  }
+  document.addEventListener('click', onGesture);
+  document.addEventListener('keydown', onGesture);
+
   setInterval(() => {
+    if (!audio.ready) {
+      void initAudio().then((ok) => { if (ok) drainPendingAudio(); });
+      return;
+    }
     if (audio.ctx?.state === 'suspended') audio.resume().catch(() => {});
+    else drainPendingAudio();
   }, 2_000);
 }
 

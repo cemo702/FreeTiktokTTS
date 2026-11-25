@@ -85,6 +85,40 @@ test('pump: her dil kendi motoruyla sentezlenir, ornek hizi motordan gelir', asy
   assert.equal(audios[1].lang, 'tr');
 });
 
+test('pump: sentez hatasi current i temizler, sonraki yorum okunur', async () => {
+  let calls = 0;
+  const p = new Pipeline({
+    tts: {
+      ready: true,
+      sampleRate: 22050,
+      synthesize: async (text) => {
+        calls += 1;
+        if (calls === 1) throw new Error('TTS yaniti 20 sn icinde gelmedi');
+        return { pcm: Buffer.alloc(0), durationSec: 0.05, firstMs: 1, text };
+      }
+    },
+    getSettings: baseSettings
+  });
+  const audios = [];
+  const errors = [];
+  p.on('speech-audio', (e) => audios.push(e));
+  p.on('speech-error', (e) => errors.push(e));
+
+  p.ingest({ id: 'c1', userId: 'u1', userName: 'Ali', text: 'birinci yorum' });
+  p.ingest({ id: 'c2', userId: 'u2', userName: 'Veli', text: 'ikinci yorum' });
+  p.start();
+
+  const deadline = Date.now() + 5000;
+  while (audios.length < 1 && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  p.pause();
+
+  assert.equal(errors.length, 1);
+  assert.equal(p.current, null, 'hata sonrasi current temizlenmeli');
+  assert.equal(audios.length, 1, 'sonraki yorum kilitlenmeden okunmali');
+});
+
 test('ingest: ayni msgId ikinci kez gelirse dusurulur (TikTok gecmis tekrari)', () => {
   const p = new Pipeline({ tts: fakeTts(22050), getSettings: baseSettings });
   const r1 = p.ingest({ id: 'msg-1', userId: 'u1', userName: 'Ali', text: 'selam' });

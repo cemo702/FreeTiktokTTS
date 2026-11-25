@@ -37,6 +37,8 @@ export class TtsEngine extends EventEmitter {
     this.info = null;
     this.restarts = 0;
     this.stopping = false;
+    // Yanit gelmezse istegi reddet: asili bir sentez is hattini kilitlemesin.
+    this.synthTimeoutMs = options.synthTimeoutMs ?? 20_000;
   }
 
   /** engine.json dosyasindan yollari okur. */
@@ -128,7 +130,10 @@ export class TtsEngine extends EventEmitter {
     this.ready = false;
     this.info = null;
     const error = new Error(`TTS motoru kapandi (code=${code} signal=${signal ?? '-'})`);
-    for (const [, entry] of this.pending) entry.reject(error);
+    for (const [, entry] of this.pending) {
+      clearTimeout(entry.timer);
+      entry.reject(error);
+    }
     this.pending.clear();
     if (!wasStopping) {
       this.restarts += 1;
@@ -200,6 +205,7 @@ export class TtsEngine extends EventEmitter {
         const entry = this.pending.get(msg.id);
         if (entry) {
           this.pending.delete(msg.id);
+          clearTimeout(entry.timer);
           const pcm = Buffer.concat(entry.chunks);
           entry.resolve({
             pcm,
@@ -216,6 +222,7 @@ export class TtsEngine extends EventEmitter {
         const entry = this.pending.get(msg.id);
         if (entry) {
           this.pending.delete(msg.id);
+          clearTimeout(entry.timer);
           entry.reject(new Error(`TTS hatasi: ${msg.message}`));
         }
         this.emit('error', new Error(msg.message));
@@ -236,12 +243,25 @@ export class TtsEngine extends EventEmitter {
   synthesize(text, params = {}, onChunk = null) {
     if (!this.child) return Promise.reject(new Error('TTS motoru calismiyor'));
     const id = this.nextId++;
-    const entry = { chunks: [], onChunk, resolve: null, reject: null };
+    const entry = { chunks: [], onChunk, resolve: null, reject: null, timer: null };
     const promise = new Promise((resolve, reject) => {
       entry.resolve = resolve;
       entry.reject = reject;
     });
     this.pending.set(id, entry);
+
+    // Sidecar canli gorunup yanit vermeyebilir (asili kalan boru hatti).
+    // Zaman asiminda istegi reddet ve motoru yeniden baslat: aksi halde
+    // Pipeline.current sonsuza kadar dolu kalir ve tum okuma kilitlenir.
+    entry.timer = setTimeout(() => {
+      if (!this.pending.has(id)) return;
+      this.pending.delete(id);
+      const seconds = Math.max(1, Math.round(this.synthTimeoutMs / 1000));
+      entry.reject(new Error(`TTS yaniti ${seconds} sn icinde gelmedi`));
+      this.emit('log', `piper yanit vermedi (${seconds} sn); motor yeniden baslatiliyor`);
+      try { this.child?.kill(); } catch { /* yoksay */ }
+    }, this.synthTimeoutMs);
+    entry.timer.unref?.();
 
     const payload = {
       id,
@@ -254,6 +274,7 @@ export class TtsEngine extends EventEmitter {
     try {
       this.child.stdin.write(`${JSON.stringify(payload)}\n`);
     } catch (err) {
+      clearTimeout(entry.timer);
       this.pending.delete(id);
       return Promise.reject(err);
     }

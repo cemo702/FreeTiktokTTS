@@ -160,3 +160,43 @@ test('TikTokSource: basarisiz connect sonrasi asili disconnect donguyu durdurmaz
 
   await source.stop();
 });
+
+test('TikTokSource: sessiz baglanti bekcisi yeniden baglanmayi tetikler', async () => {
+  const source = new TikTokSource({
+    silenceTimeoutMs: 50,
+    viewerFallbackMs: 20,
+    createConnection: () => new FakeTikTokConnection(null)
+  });
+  const logs = [];
+  source.on('log', (message) => logs.push(message));
+
+  await source.start('kanal');
+  assert.equal(source.getStatus().status, 'canli');
+  await new Promise((resolve) => setTimeout(resolve, 120));
+
+  assert.ok(logs.includes('log.connectionSilent'), 'sessiz baglanti logu yayilmali');
+
+  await source.stop();
+});
+
+test('TikTokSource: connect asili kalirsa zaman asimi yeniden denemeyi baslatir', async () => {
+  let attempts = 0;
+  const source = new TikTokSource({
+    connectTimeoutMs: 40,
+    createConnection: () => {
+      attempts += 1;
+      const c = new FakeTikTokConnection(null);
+      c.connect = () => new Promise(() => {});
+      return c;
+    }
+  });
+
+  await source.start('kanal');
+  assert.equal(attempts, 1);
+  assert.equal(source.getStatus().status, 'hata', 'zaman asimi hata durumuna gecirmeli');
+
+  await new Promise((resolve) => setTimeout(resolve, 2200));
+  assert.ok(attempts >= 2, 'zaman asimi sonrasi yeniden denenmeli');
+
+  await source.stop();
+});

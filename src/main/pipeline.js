@@ -288,6 +288,9 @@ export class Pipeline extends EventEmitter {
     const item = this.queue.peek(Date.now());
     if (!item) return;
     this.prefetched = { item, promise: this.#synthesize(item) };
+    // Is hatasiz tuketilene kadar reddedilmis olabilir; Node'un islenmemis
+    // ret (unhandled rejection) ile sureci dusurmesini engelle.
+    this.prefetched.promise.catch(() => {});
     this.emit('prefetch', { queueId: item.id, text: item.text });
   }
 
